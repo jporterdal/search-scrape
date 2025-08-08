@@ -1,7 +1,5 @@
-from time import sleep
 import re
 import requests
-from urllib import parse
 from html.parser import HTMLParser
 import logging
 
@@ -196,65 +194,6 @@ class SearchParser(HTMLParser):
         raise NotImplementedError
 
 
-class CCSearchParser(SearchParser):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.url = "https://www.canada" + "computers.com/en/search?s=" + parse.quote_plus(self.term) + "&pickup=62"
-        self.title_patterns.extend([
-            "msi.*" + self.term.lower() + ".*",
-            "asus.*" + self.term.lower() + ".*",
-            "gigabyte.*" + self.term.lower() + ".*",
-        ])
-
-    def check_within_item_object(self, element):
-        return element.tag == "div" and element.is_class("product")
-
-    def check_element_title(self, elt=None):
-        cur = elt or self.dom[-1]  # Accept passed element or else check current element from DOM
-
-        parent = cur.parent
-
-        return cur.tag == "a" and parent is not None and parent.is_class("product-title")
-
-    def check_element_price(self, elt=None):
-        cur = elt or self.dom[-1]
-
-        return cur.tag == "span" and cur.is_class("price")
-
-    def check_element_instock(self, elt=None):
-        cur = elt or self.dom[-1]
-
-        if cur.tag == "b":
-            for anc in cur.any_ancestor_tag("div"):
-                if anc.is_class("available-tag"):
-                    return True
-        return False
-
-    def read_price(self, data):
-        try:
-            self.price = float(re.match(".*\$([0-9\.\,]+)$", data.strip())[1].replace(",", ""))
-        except TypeError:  # no match!
-            # TODO: refactor this to handle price data being within an element containing other elements
-            logger.error("Could not find price in element data!")
-            logger.error(f" '{data.strip()}'")
-            raise
-            #self.price = float(data[1:].strip().replace(",", ""))
-
-    def read_title(self, data):
-        self.title = str(data.strip())
-
-
-    def read_instock(self, data):
-        pattern = ".*?(\S.*\S).*?"
-        m = re.match(pattern, data, re.DOTALL)  # Instruct re to include endlines in [.]
-        try:
-            self.instock = m[1].lower() == "In Store - Available for Pickup".lower()
-        except:
-            return False  # Not successful
-
-        return True  # Successful
-
-
 # Entry-point function
 def search(parser_cls, search_term):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:138.0) Gecko/20100101 Firefox/138.0"}
@@ -277,21 +216,10 @@ def search(parser_cls, search_term):
 
 
 if __name__ == "__main__":
-    logging.basicConfig(filename="debug.log", level=logging.DEBUG)
-
-    search_terms = ["rtx 5060", "rtx 5070", "rx 9060"]
-
-    results, output = [], []
-    for term in search_terms:
-        result = search(CCSearchParser, term)
-        results.append(result)
-
-        output.append("\t".join(
-            result.lowest_price()
-        ) + "\n")
-        sleep(1.1)  # Be kind to our HTML-serving friends
-
-
-    with open("found_prices.txt", "w") as f:
-        f.writelines(output)
+    print("HTMLParser sanity check: \n")
+    parser = TestParser()
+    html = ("<html>\n<body><h2>Page Title</h2>\n\n\t<div class='mt-4 mb-3'>Lorem "
+            "<a href='http://www.google.com'>Ipsum</a> \n dolor sit amet</div>"
+            "</body></html>")
+    parser.feed(html)
 
