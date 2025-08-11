@@ -21,10 +21,7 @@ class TestParser(HTMLParser):
 
 
 class SearchParser(HTMLParser):
-    dom = []
     data_keys = ["category", "title", "price", "instock"]
-    current_data_key = None  # TODO: implement this as a stack to allow nested elements with data
-    results = []
     _ignore_tags = ["img", "input"]
 
 
@@ -82,15 +79,17 @@ class SearchParser(HTMLParser):
 
 
     def __init__(self, *args, **kwargs):
+        self.term = kwargs.get('term', None)
+        super().__init__(*args, **kwargs)
+
+    def _init_vars(self):
         self.within_item_object = False
         self.instock = False
-        try:
-            self.term = kwargs.pop('term')
-        except KeyError as e:
-            print("Parser missing required keyword 'term'")
-            raise e
         self.title_patterns = [self.term.lower() + "$"]
-        super().__init__(*args, **kwargs)
+
+        self.results = []
+        self.dom = []
+        self.current_data_key = None  # TODO: implement this as a stack to allow nested elements with data
 
     def handle_starttag(self, tag, attrs):
         if tag in self._ignore_tags:
@@ -193,9 +192,30 @@ class SearchParser(HTMLParser):
         # Should be implemented within a subclass
         raise NotImplementedError
 
+    # Entry-point function
+    def search(self, term=None):
+        self.term = term or self.term  # Update search-term if given
+        self._init_vars()
+
+        headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:138.0) Gecko/20100101 Firefox/138.0"}
+
+        print(f"'{self.term}' -", end="")
+        result = requests.get(self.url, headers=headers)
+        if result.status_code == 200:
+            print("   200")
+
+            try:
+                self.feed(result.text)
+            except:
+                with open("error_page.html", "w") as err:
+                    err.writelines(result.text)
+                raise
+        else:
+            print(f" *** {result.status_code}")
+
 
 # Entry-point function
-def search(parser_cls, search_term):
+def qqqsearch(parser_cls, search_term):
     headers = {"User-Agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64; rv:138.0) Gecko/20100101 Firefox/138.0"}
     parser = parser_cls(term=search_term)
 

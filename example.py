@@ -1,4 +1,4 @@
-from search_scrape import SearchParser, search
+from search_scrape import SearchParser##, search
 from urllib import parse
 import re
 from time import sleep
@@ -8,8 +8,8 @@ logger = logging.getLogger(__name__)
 
 
 class CCSearchParser(SearchParser):
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
+    def _init_vars(self):
+        super()._init_vars()
         self.url = "https://www.canada" + "computers.com/en/search?s=" + parse.quote_plus(self.term) + "&pickup=62"
         self.title_patterns.extend([
             "msi.*" + self.term.lower() + ".*",
@@ -73,11 +73,13 @@ if __name__ == "__main__":
 
     results, output = [], []
     for term in search_terms:
-        result = search(CCSearchParser, term)
-        results.append(result)
+        parser = CCSearchParser()
+        parser.search(term)
+
+        results.append(parser.results)
 
         output.append("\t".join(
-            result.lowest_price()
+            parser.lowest_price()
         ) + "\n")
         sleep(1.1)  # Be kind to our HTML-serving friends
 
