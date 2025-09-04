@@ -79,7 +79,11 @@ class SearchParser(HTMLParser):
 
 
     def __init__(self, *args, **kwargs):
-        self.term = kwargs.get('term', None)
+        try:
+            self.term = kwargs.pop('term')
+        except KeyError:
+            self.term = None
+        #self.term = kwargs.get('term', None)
         super().__init__(*args, **kwargs)
 
     def _init_vars(self):
